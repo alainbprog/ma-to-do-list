@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ma To Do list</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: {
+        'ios': ['-apple-system', 'BlinkMacSystemFont', 'San Francisco', 'Helvetica Neue', 'Segoe UI', 'Roboto', 'Arial', 'sans-serif']
+      },
+      colors: {
+        ios: {
+          blue: '#007AFF',
+          gray: '#F2F2F7',
+          gray2: '#E5E5EA',
+          gray3: '#D1D1D6',
+          gray4: '#C7C7CC',
+          gray5: '#8E8E93',
+          red: '#FF3B30',
+          green: '#34C759',
+          orange: '#FF9500',
+          yellow: '#FFCC00',
+          bg: '#F2F2F7',
+          card: '#FFFFFF'
+        }
+      },
+      animation: {
+        'slide-up': 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+        'slide-down': 'slideDown 0.3s cubic-bezier(0.4, 0, 1)',
+        'fade-in': 'fadeIn 0.3s ease-out',
+        'scale-in': 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+        'bounce-in': 'bounceIn 0.5s cubic-bezier(0.16, 1, 0.3, 1)'
+      },
+      keyframes: {
+        slideUp: {
+          '0%': { transform: 'translateY(100%)' },
+          '100%': { transform: 'translateY(0)' }
+        },
+        slideDown: {
+          '0%': { transform: 'translateY(0)' },
+          '100%': { transform: 'translateY(100%)' }
+        },
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' }
+        },
+        scaleIn: {
+          '0%': { transform: 'scale(0.9)', opacity: '0' },
+          '100%': { transform: 'scale(1)', opacity: '1' }
+        },
+        bounceIn: {
+          '0%': { transform: 'scale(0.3)', opacity: '0' },
+          '50%': { transform: 'scale(1.05)' },
+          '70%': { transform: 'scale(0.95)' },
+          '100%': { transform: 'scale(1)', opacity: '1' }
+        }
+      }
+    }
+  }
+}
+</script>
+<style>
+* {
+  font-family: -apple-system, BlinkMacSystemFont, 'San Francisco', 'Helvetica Neue', 'Segoe UI', 'Roboto', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: #F2F2F7;
+  overscroll-behavior-y: none;
+}
+
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: opacity(0.5);
+  cursor: pointer;
+}
+
+.task-checkbox {
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  border: 2px solid #D1D1D6;
+  border-radius: 50%;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+
+.task-checkbox:checked {
+  background-color: #007AFF;
+  border-color: #007AFF;
+  animation: bounceIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.task-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 3px;
+  width: 6px;
+  height: 11px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.modal-backdrop {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.priority-haute { background: #FF3B30; }
+.priority-moyenne { background: #FF9500; }
+.priority-basse { background: #34C759; }
+
+.toast {
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1), fadeIn 0.3s ease-out;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C7C7CC;
+  border-radius: 10px;
+}
+
+.task-item {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.task-item:active {
+  transform: scale(0.98);
+}
+
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%238E8E93'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem;
+}
+</style>
+</head>
+<body class="font-ios bg-ios-bg min-h-screen pb-24">
+  <!-- Header -->
+  <header class="bg-ios-card sticky top-0 z-30 border-b border-ios-gray2">
+    <div class="max-w-2xl mx-auto px-4 py-4">
+      <div class="flex items-center justify-between mb-4">
+        <h1 class="text-[34px] font-bold tracking-tight">Ma To Do list</h1>
+        <button id="notifBtn" class="w-9 h-9 rounded-full bg-ios-gray flex items-center justify-center active:scale-90 transition-transform">
+          <svg class="w-5 h-5 text-ios-gray5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Search -->
+      <div class="relative">
+        <svg class="w-5 h-5 text-ios-gray5 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+        <input 
+          type="text" 
+          id="searchInput" 
+          placeholder="Rechercher" 
+          class="w-full bg-ios-gray rounded-xl py-2.5 pl-10 pr-4 text-[17px] placeholder-ios-gray5 focus:outline-none focus:ring-2 focus:ring-ios-blue/20 transition-all"
+        >
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-2xl mx-auto px-4 py-4">
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-3 gap-3 mb-6">
+      <div class="bg-ios-card rounded-2xl p-4 shadow-sm">
+        <div class="text-[13px] text-ios-gray5 font-medium mb-1">Total</div>
+        <div id="statTotal" class="text-[28px] font-bold">0</div>
+      </div>
+      <div class="bg-ios-card rounded-2xl p-4 shadow-sm">
+        <div class="text-[13px] text-ios-gray5 font-medium mb-1">Actives</div>
+        <div id="statActive" class="text-[28px] font-bold text-ios-blue">0</div>
+      </div>
+      <div class="bg-ios-card rounded-2xl p-4 shadow-sm">
+        <div class="text-[13px] text-ios-gray5 font-medium mb-1">Terminées</div>
+        <div id="statDone" class="text-[28px] font-bold text-ios-green">0</div>
+      </div>
+    </div>
+
+    <!-- Filters + Sort -->
+    <div class="bg-ios-card rounded-2xl p-1 shadow-sm mb-4">
+      <div class="grid grid-cols-3 gap-1">
+        <button data-filter="all" class="filter-btn bg-ios-blue text-white rounded-xl py-2 text-[15px] font-semibold transition-all">Toutes</button>
+        <button data-filter="active" class="filter-btn text-ios-gray5 rounded-xl py-2 text-[15px] font-semibold transition-all">Actives</button>
+        <button data-filter="done" class="filter-btn text-ios-gray5 rounded-xl py-2 text-[15px] font-semibold transition-all">Terminées</button>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between mb-4">
+      <label class="text-[15px] text-ios-gray5 font-medium">Trier par</label>
+      <select id="sortSelect" class="bg-ios-card rounded-xl px-4 py-2 text-[15px] font-medium text-ios-blue appearance-none pr-10 focus:outline-none focus:ring-2 focus:ring-ios-blue/20 cursor-pointer">
+        <option value="date-desc">Date récente</option>
+        <option value="date-asc">Date ancienne</option>
+        <option value="priority">Priorité</option>
+        <option value="alpha">Alphabétique</option>
+      </select>
+    </div>
+
+    <!-- Task List -->
+    <div id="taskList" class="space-y-2"></div>
+
+    <!-- Empty State -->
+    <div id="emptyState" class="hidden text-center py-16 animate-fade-in">
+      <div class="w-20 h-20 bg-ios-gray rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-10 h-10 text-ios-gray5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+        </svg>
+      </div>
+      <h3 class="text-[20px] font-semibold mb-1">Aucune tâche</h3>
+      <p class="text-[15px] text-ios-gray5">Appuyez sur + pour ajouter votre première tâche</p>
+    </div>
+  </main>
+
+  <!-- FAB Add Button -->
+  <button id="addBtn" class="fixed bottom-6 right-6 w-14 h-14 bg-ios-blue rounded-full shadow-xl flex items-center justify-center active:scale-90 transition-transform z-20">
+    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path>
+    </svg>
+  </button>
+
+  <!-- Modal Add/Edit Task -->
+  <div id="modalOverlay" class="fixed inset-0 bg-black/20 modal-backdrop z-40 hidden animate-fade-in">
+    <div id="modal" class="fixed inset-x-0 bottom-0 bg-ios-gray rounded-t-[20px] max-h-[90vh] overflow-hidden animate-slide-up">
+      <div class="sticky top-0 bg-ios-gray z-10">
+        <div class="flex justify-center pt-2 pb-1">
+          <div class="w-9 h-1 bg-ios-gray3 rounded-full"></div>
+        </div>
+        <div class="flex items-center justify-between px-4 py-3 border-b border-ios-gray2">
+          <button id="cancelBtn" class="text-ios-blue text-[17px] active:opacity-50">Annuler</button>
+          <h2 id="modalTitle" class="text-[17px] font-semibold">Nouvelle tâche</h2>
+          <button id="saveBtn" class="text-ios-blue text-[17px] font-semibold active:opacity-50">Ajouter</button>
+        </div>
+      </div>
+
+      <form id="taskForm" class="overflow-y-auto max-h-[calc(90vh-60px)] pb-6">
+        <div class="bg-ios-card mx-4 mt-4 rounded-xl overflow-hidden">
+          <input 
+            type="text" 
+            id="titleInput" 
+            placeholder="Titre" 
+            required
+            class="w-full px-4 py-3.5 text-[17px] focus:outline-none border-b border-ios-gray2"
+          >
+          <textarea 
+            id="noteInput" 
+            placeholder="Note" 
+            rows="3"
+            class="w-full px-4 py-3.5 text-[17px] focus:outline-none resize-none"
+          ></textarea>
+        </div>
+
+        <div class="bg-ios-card mx-4 mt-4 rounded-xl overflow-hidden">
+          <div class="flex items-center px-4 py-3.5 border-b border-ios-gray2">
+            <svg class="w-6 h-6 text-ios-gray5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>
+            <input 
+              type="datetime-local" 
+              id="dateInput" 
+              class="flex-1 text-[17px] focus:outline-none bg-transparent"
+            >
+          </div>
+
+          <div class="flex items-center px-4 py-3.5 border-b border-ios-gray2">
+            <svg class="w-6 h-6 text-ios-gray5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"></path>
+            </svg>
+            <select id="priorityInput" class="flex-1 text-[17px] focus:outline-none bg-transparent appearance-none">
+              <option value="Basse">Priorité basse</option>
+              <option value="Moyenne" selected>Priorité moyenne</option>
+              <option value="Haute">Priorité haute</option>
+            </select>
+          </div>
+
+          <div class="flex items-center px-4 py-3.5">
+            <svg class="w-6 h-6 text-ios-gray5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+            </svg>
+            <select id="categoryInput" class="flex-1 text-[17px] focus:outline-none bg-transparent appearance-none">
+              <option value="Perso">Personnel</option>
+              <option value="Travail">Travail</option>
+              <option value="Courses">Courses</option>
+              <option value="Autre">Autre</option>
+            </select>
+          </div>
+        </div>
+
+        <input type="hidden" id="editIdInput">
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 space-y-2"></div>
+
+<script>
+const STORAGE_KEY = 'ma-todo-list-v1';
+let tasks = [];
+let currentFilter = 'all';
+let currentSort = 'date-desc';
+let searchQuery = '';
+let editingId = null;
+let notifTimers = [];
+
+const elements = {
+  taskList: document.getElementById('taskList'),
+  emptyState: document.getElementById('emptyState'),
+  modalOverlay: document.getElementById('modalOverlay'),
+  modal: document.getElementById('modal'),
+  modalTitle: document.getElementById('modalTitle'),
+  taskForm: document.getElementById('taskForm'),
+  titleInput: document.getElementById('titleInput'),
+  noteInput: document.getElementById('noteInput'),
+  dateInput: document.getElementById('dateInput'),
+  priorityInput: document.getElementById('priorityInput'),
+  categoryInput: document.getElementById('categoryInput'),
+  editIdInput: document.getElementById('editIdInput'),
+  saveBtn: document.getElementById('saveBtn'),
+  addBtn: document.getElementById('addBtn'),
+  cancelBtn: document.getElementById('cancelBtn'),
+  notifBtn: document.getElementById('notifBtn'),
+  searchInput: document.getElementById('searchInput'),
+  sortSelect: document.getElementById('sortSelect'),
+  statTotal: document.getElementById('statTotal'),
+  statActive: document.getElementById('statActive'),
+  statDone: document.getElementById('statDone'),
+  toastContainer: document.getElementById('toastContainer'),
+  filterBtns: document.querySelectorAll('.filter-btn')
+};
+
+// Utils
+const uid = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
+const saveTasks = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+const loadTasks = () => {
+  const data = localStorage.getItem(STORAGE_KEY);
+  tasks = data ? JSON.parse(data) : [];
+};
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const taskDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diff = Math.round((taskDate - today) / 86400000);
+  
+  const time = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  
+  if (diff === 0) return `Aujourd'hui à ${time}`;
+  if (diff === 1) return `Demain à ${time}`;
+  if (diff === -1) return `Hier à ${time}`;
+  return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ` à ${time}`;
+};
+
+const getPriorityColor = (p) => {
+  return p === 'Haute' ? 'ios-red' : p === 'Moyenne' ? 'ios-orange' : 'ios-green';
+};
+
+const showToast = (msg, type = 'info') => {
+  const toast = document.createElement('div');
+  const bg = type === 'success' ? 'bg-ios-green' : type === 'error' ? 'bg-ios-red' : 'bg-ios-gray5';
+  toast.className = `toast ${bg} text-white px-5 py-3 rounded-2xl shadow-xl text-[15px] font-medium`;
+  toast.textContent = msg;
+  elements.toastContainer.appendChild(toast);
+  setTimeout(() => {
+    toast.style.animation = 'fadeIn 0.3s ease-out reverse';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+};
+
+// Notifications
+const requestNotifPermission = async () => {
+  if (!('Notification' in window)) {
+    showToast('Notifications non supportées', 'error');
+    return false;
+  }
+  if (Notification.permission === 'granted') {
+    showToast('Notifications déjà activées', 'success');
+    return true;
+  }
+  const perm = await Notification.requestPermission();
+  if (perm === 'granted') {
+    showToast('Notifications activées', 'success');
+    scheduleAllNotifications();
+    return true;
+  }
+  showToast('Permission refusée', 'error');
+  return false;
+};
+
+const scheduleNotification = (task) => {
+  if (!task.dueDate || !task.title || task.completed) return;
+  if (Notification.permission !== 'granted') return;
+  
+  const due = new Date(task.dueDate);
+  const now = new Date();
+  const tenMinBefore = new Date(due.getTime() - 10 * 60000);
+  
+  if (tenMinBefore > now) {
+    const timer1 = setTimeout(() => {
+      new Notification('Rappel', {
+        body: `"${task.title}" dans 10 minutes`,
+        icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" fill="%23007AFF" viewBox="0 0 24 24"%3E%3Cpath d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/%3E%3C/svg%3E'
+      });
+    }, tenMinBefore - now);
+    notifTimers.push(timer1);
+  }
+  
+  if (due > now) {
+    const timer2 = setTimeout(() => {
+      new Notification('Échéance', {
+        body: `"${task.title}" est maintenant due`,
+        icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" fill="%23FF3B30" viewBox="0 0 24 24"%3E%3Cpath d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/%3E%3C/svg%3E'
+      });
+    }, due - now);
+    notifTimers.push(timer2);
+  }
+};
+
+const scheduleAllNotifications = () => {
+  notifTimers.forEach(t => clearTimeout(t));
+  notifTimers = [];
+  tasks.filter(t => !t.completed && t.dueDate).forEach(scheduleNotification);
+};
+
+const testNotification = () => {
+  if (Notification.permission !== 'granted') {
+    requestNotifPermission();
+    return;
+  }
+  new Notification('Test de notification', {
+    body: 'Les notifications fonctionnent correctement !',
+    icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" fill="%23007AFF" viewBox="0 0 24 24"%3E%3Cpath d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/%3E%3C/svg%3E'
+  });
+  showToast('Notification test envoyée', 'success');
+};
+
+// Task CRUD
+const createTask = (data) => {
+  const task = {
+    id: data.id || uid(),
+    title: data.title.trim(),
+    note: data.note.trim(),
+    dueDate: data.dueDate || null,
+    priority: data.priority,
+    category: data.category,
+    completed: false,
+    createdAt: data.createdAt || new Date().toISOString()
+  };
+  tasks.unshift(task);
+  saveTasks();
+  scheduleNotification(task);
+  render();
+};
+
+const updateTask = (id, data) => {
+  const idx = tasks.findIndex(t => t.id === id);
+  if (idx === -1) return;
+  tasks[idx] = { ...tasks[idx], ...data };
+  saveTasks();
+  scheduleNotification(tasks[idx]);
+  render();
+};
+
+const deleteTask = (id) => {
+  tasks = tasks.filter(t => t.id !== id);
+  saveTasks();
+  render();
+  showToast('Tâche supprimée');
+};
+
+const toggleComplete = (id) => {
+  const task = tasks.find(t => t.id === id);
+  if (task) {
+    task.completed = !task.completed;
+    saveTasks();
+    render();
+  }
+};
+
+// Modal
+const openModal = (task = null) => {
+  editingId = task?.id || null;
+  elements.modalTitle.textContent = task ? 'Modifier la tâche' : 'Nouvelle tâche';
+  elements.saveBtn.textContent = task ? 'Enregistrer' : 'Ajouter';
+  
+  if (task) {
+    elements.titleInput.value = task.title;
+    elements.noteInput.value = task.note;
+    elements.dateInput.value = task.dueDate ? task.dueDate.slice(0, 16) : '';
+    elements.priorityInput.value = task.priority;
+    elements.categoryInput.value = task.category;
+    elements.editIdInput.value = task.id;
+  } else {
+    elements.taskForm.reset();
+    elements.priorityInput.value = 'Moyenne';
+    elements.categoryInput.value = 'Perso';
+    elements.editIdInput.value = '';
+  }
+  
+  elements.modalOverlay.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => elements.titleInput.focus(), 400);
+};
+
+const closeModal = () => {
+  elements.modalOverlay.classList.add('hidden');
+  document.body.style.overflow = '';
+  elements.taskForm.reset();
+  editingId = null;
+};
+
+const handleSave = (e) => {
+  e.preventDefault();
+  const data = {
+    title: elements.titleInput.value,
+    note: elements.noteInput.value,
+    dueDate: elements.dateInput.value || null,
+    priority: elements.priorityInput.value,
+    category: elements.categoryInput.value
+  };
+  
+  if (!data.title.trim()) {
+    showToast('Le titre est requis', 'error');
+    return;
+  }
+  
+  if (editingId) {
+    updateTask(editingId, data);
+    showToast('Tâche modifiée', 'success');
+  } else {
+    createTask(data);
+    showToast('Tâche ajoutée', 'success');
+  }
+  
+  closeModal();
+};
+
+// Filters & Sort
+const getFilteredTasks = () => {
+  let filtered = [...tasks];
+  
+  if (currentFilter === 'active') {
+    filtered = filtered.filter(t => !t.completed);
+  } else if (currentFilter === 'done') {
+    filtered = filtered.filter(t => t.completed);
+  }
+  
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    filtered = filtered.filter(t => 
+      t.title.toLowerCase().includes(q) || 
+      t.note.toLowerCase().includes(q) ||
+      t.category.toLowerCase().includes(q)
+    );
+  }
+  
+  return filtered;
+};
+
+const sortTasks = (arr) => {
+  const sorted = [...arr];
+  if (currentSort === 'date-desc') {
+    sorted.sort((a, b) => {
+      if (!a.dueDate) return 1;
+      if (!b.dueDate) return -1;
+      return new Date(b.dueDate) - new Date(a.dueDate);
+    });
+  } else if (currentSort === 'date-asc') {
+    sorted.sort((a, b) => {
+      if (!a.dueDate) return 1;
+      if (!b.dueDate) return -1;
+      return new Date(a.dueDate) - new Date(b.dueDate);
+    });
+  } else if (currentSort === 'priority') {
+    const order = { 'Haute': 0, 'Moyenne': 1, 'Basse': 2 };
+    sorted.sort((a, b) => order[a.priority] - order[b.priority]);
+  } else if (currentSort === 'alpha') {
+    sorted.sort((a, b) => a.title.localeCompare(b.title, 'fr'));
+  }
+  return sorted;
+};
+
+// Render
+const renderTask = (task) => {
+  const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && !task.completed;
+  const priorityClass = getPriorityColor(task.priority);
+  
+  return `
+    <div class="task-item bg-ios-card rounded-2xl shadow-sm overflow-hidden animate-scale-in" data-id="${task.id}">
+      <div class="flex items-start gap-3 p-4">
+        <input 
+          type="checkbox" 
+          class="task-checkbox mt-0.5"
+          ${task.completed ? 'checked' : ''}
+          data-action="toggle"
+        >
+        <div class="flex-1 min-w-0">
+          <div class="flex items-start gap-2 mb-1">
+            <h3 class="text-[17px] font-semibold flex-1 ${task.completed ? 'line-through text-ios-gray5' : ''}">${task.title}</h3>
+            <div class="flex items-center gap-1.5 flex-shrink-0">
+              <span class="w-2 h-2 rounded-full ${priorityClass}"></span>
+              <span class="text-[13px] text-ios-gray5">${task.category}</span>
+            </div>
+          ${task.note ? `<p class="text-[15px] text-ios-gray5 mb-2 ${task.completed ? 'line-through' : ''}">${task.note}</p>` : ''}
+          ${task.dueDate ? `
+            <div class="flex items-center gap-1.5 text-[13px] ${isOverdue ? 'text-ios-red font-medium' : 'text-ios-gray5'}">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              ${formatDate(task.dueDate)}
+            </div>
+          ` : ''}
+        </div>
+      <div class="flex border-t border-ios-gray2">
+        <button 
+          class="flex-1 py-3 text-[15px] font-medium text-ios-blue active:bg-ios-gray transition-colors"
+          data-action="edit"
+        >Modifier</button>
+        <div class="w-px bg-ios-gray2"></div>
+        <button 
+          class="flex-1 py-3 text-[15px] font-medium text-ios-red active:bg-ios-gray transition-colors"
+          data-action="delete"
+        >Supprimer</button>
+      </div>
+    </div>
+  `;
+};
+
+const updateStats = () => {
+  const total = tasks.length;
+  const active = tasks.filter(t => !t.completed).length;
+  const done = tasks.filter(t => t.completed).length;
+  
+  elements.statTotal.textContent = total;
+  elements.statActive.textContent = active;
+  elements.statDone.textContent = done;
+};
+
+const render = () => {
+  const filtered = getFilteredTasks();
+  const sorted = sortTasks(filtered);
+  
+  if (sorted.length === 0) {
+    elements.taskList.innerHTML = '';
+    elements.emptyState.classList.remove('hidden');
+  } else {
+    elements.emptyState.classList.add('hidden');
+    elements.taskList.innerHTML = sorted.map(renderTask).join('');
+  }
+  
+  updateStats();
+};
+
+// Event Listeners
+elements.addBtn.addEventListener('click', () => openModal());
+elements.cancelBtn.addEventListener('click', closeModal);
+elements.modalOverlay.addEventListener('click', (e) => {
+  if (e.target === elements.modalOverlay) closeModal();
+});
+elements.saveBtn.addEventListener('click', handleSave);
+elements.taskForm.addEventListener('submit', handleSave);
+
+elements.notifBtn.addEventListener('click', () => {
+  if (Notification.permission === 'granted') {
+    testNotification();
+  } else {
+    requestNotifPermission();
+  }
+});
+
+elements.searchInput.addEventListener('input', (e) => {
+  searchQuery = e.target.value;
+  render();
+});
+
+elements.sortSelect.addEventListener('change', (e) => {
+  currentSort = e.target.value;
+  render();
+});
+
+elements.filterBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentFilter = btn.dataset.filter;
+    elements.filterBtns.forEach(b => {
+      b.classList.remove('bg-ios-blue', 'text-white');
+      b.classList.add('text-ios-gray5');
+    });
+    btn.classList.add('bg-ios-blue', 'text-white');
+    btn.classList.remove('text-ios-gray5');
+    render();
+  });
+});
+
+elements.taskList.addEventListener('click', (e) => {
+  const taskEl = e.target.closest('.task-item');
+  if (!taskEl) return;
+  
+  const id = taskEl.dataset.id;
+  const action = e.target.dataset.action;
+  
+  if (action === 'toggle') {
+    toggleComplete(id);
+  } else if (action === 'edit') {
+    const task = tasks.find(t => t.id === id);
+    openModal(task);
+  } else if (action === 'delete') {
+    if (confirm('Supprimer cette tâche ?')) {
+      deleteTask(id);
+    }
+  }
+});
+
+// Init
+loadTasks();
+render();
+if (Notification.permission === 'granted') {
+  scheduleAllNotifications();
+}
+
+// Close modal on Escape
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !elements.modalOverlay.classList.contains('hidden')) {
+    closeModal();
+  }
+});
+</script>
+</body>
+</html>
